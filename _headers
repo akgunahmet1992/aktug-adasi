@@ -1,0 +1,11 @@
+# Netlify basliklari (dist/_headers). Elle yuklemede de gecerli.
+# assets/*: dosya adinda icerik ozeti var -> sonsuza kadar onbellek.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Modeller ve dokular: ad degismeden icerik degisebilir -> 1 gun.
+/varlik/*
+  Cache-Control: public, max-age=86400
+
+/*.webmanifest
+  Content-Type: application/manifest+json

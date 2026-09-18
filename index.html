@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<!-- viewport-fit=cover: iPhone centigi altinda da tam ekran.
+     user-scalable=no: cift dokunusla yakinlastirma oyunu bozuyordu. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0d1b2a" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Aktuğ" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Aktuğ ve Düşen Yıldızlar</title>
+<meta name="description" content="Aktuğ Adası: hayvanları kovala, gemiyle, uçakla ve arabayla gez, denizde yüz, yıldız topla. 2 yaş için, telefonda tarayıcıdan oynanır." />
+<!-- Aile icin yapilmis oyun: arama motorlarinda listelenmesin, yalniz link bilen acsin. -->
+<meta name="robots" content="noindex" />
+<!-- "Ana ekrana ekle": tam ekran, yatay, kendi simgesiyle acilir. -->
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" type="image/png" sizes="192x192" href="./ikon-192.png" />
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<!-- WhatsApp link onizlemesi. WhatsApp gorseli MUTLAK adresle istiyor:
+     build sirasinda SITE_URL verilirse https://akgunahmet1992.github.io/aktug-adasi onunla doldurulur (vite.config.js). -->
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="tr_TR" />
+<meta property="og:title" content="Aktuğ ve Düşen Yıldızlar" />
+<meta property="og:description" content="Aktuğ Adası: hayvanları kovala, gemiyle, uçakla, arabayla gez! Telefonu yan çevir ve oyna." />
+<meta property="og:image" content="https://akgunahmet1992.github.io/aktug-adasi/onizleme.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://akgunahmet1992.github.io/aktug-adasi/" />
+<meta name="twitter:card" content="summary_large_image" />
+<style>
+  :root {
+    --guvenli-ust: env(safe-area-inset-top, 0px);
+    --guvenli-alt: env(safe-area-inset-bottom, 0px);
+    --guvenli-sol: env(safe-area-inset-left, 0px);
+    --guvenli-sag: env(safe-area-inset-right, 0px);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #0d1b2a;
+    color: #e8eef5;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Mobilde kaydirma/yenileme jestleri oyunu kesiyordu. */
+    overscroll-behavior: none;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #oyun-kabi { position: fixed; inset: 0; }
+  #oyun-kabi canvas { display: block; width: 100%; height: 100%; }
+
+  /* Arayuz katmani: DOM overlay. Canvas'a degil buraya cizilir --
+     metin keskin kalsin ve responsive olsun diye. */
+  #arayuz-kabi {
+    position: fixed; inset: 0;
+    pointer-events: none;   /* alt katmanlar kendi pointer-events'ini acar */
+    z-index: 10;
+  }
+
+  /* Acilis perdesi. Ilk kare cizilene kadar duruyor; main.js kaldiriyor. */
+  #perde {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 24px;
+    background: radial-gradient(120% 90% at 50% 20%, #1b3a5c 0%, #0d1b2a 60%, #060d16 100%);
+    transition: opacity .5s ease;
+  }
+  #perde.gizli { opacity: 0; pointer-events: none; }
+
+  #perde h1 {
+    margin: 0; font-size: clamp(22px, 5vw, 40px);
+    font-weight: 800; letter-spacing: .02em;
+    background: linear-gradient(180deg, #ffe9a8, #ffb547);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  #perde p { margin: 0; opacity: .7; font-size: 14px; }
+
+  #yukleme-cubugu {
+    width: min(260px, 60vw); height: 6px; border-radius: 99px;
+    background: rgba(255,255,255,.12); overflow: hidden;
+  }
+  #yukleme-dolgu {
+    height: 100%; width: 0%; border-radius: 99px;
+    background: linear-gradient(90deg, #ffb547, #ffe9a8);
+    transition: width .25s ease;
+  }
+
+  /* Dikey tutuldugunda uyari. Oyun yatay tasarlandi. */
+  #yatay-uyari { display: none; }
+  @media (orientation: portrait) and (pointer: coarse) {
+    #yatay-uyari {
+      position: fixed; inset: 0; z-index: 200;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px;
+      background: #0d1b2a; text-align: center; padding: 24px;
+    }
+    #yatay-uyari .telefon {
+      width: 54px; height: 92px; border: 3px solid #ffb547; border-radius: 10px;
+      animation: cevir 1.8s ease-in-out infinite;
+    }
+    @keyframes cevir {
+      0%, 30% { transform: rotate(0deg); }
+      60%, 100% { transform: rotate(90deg); }
+    }
+  }
+</style>
+  <script type="module" crossorigin src="./assets/index-A6rdFzeI.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/motor-Dkg9D8x5.js">
+</head>
+<body>
+  <div id="oyun-kabi"></div>
+  <div id="arayuz-kabi"></div>
+
+  <div id="perde">
+    <h1>AKTUĞ ve DÜŞEN YILDIZLAR</h1>
+    <div id="yukleme-cubugu"><div id="yukleme-dolgu"></div></div>
+    <p id="yukleme-yazi">yükleniyor…</p>
+  </div>
+
+  <div id="yatay-uyari">
+    <div class="telefon"></div>
+    <div>Telefonu <b>yan çevir</b></div>
+  </div>
+
+</body>
+</html>
