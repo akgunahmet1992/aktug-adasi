@@ -92,7 +92,11 @@
     transition: width .25s ease;
   }
 
-  /* Dikey tutuldugunda uyari. Oyun yatay tasarlandi. */
+  /* Dikey tutuldugunda uyari. Oyun yatay tasarlandi.
+     2026-09-29: telefonun EKRAN DONDURME KILIDI acikken cevirmek ise
+     yaramiyor ve oyun burada takili kaliyordu ("calismiyor, donmuyor").
+     Artik "Yine de oyna" var: oyun zaten arkada calisiyor, uyariyi kaldirmak
+     yetiyor. Secim hatirlaniyor (html.dikey-tamam). */
   #yatay-uyari { display: none; }
   @media (orientation: portrait) and (pointer: coarse) {
     #yatay-uyari {
@@ -101,6 +105,7 @@
       align-items: center; justify-content: center; gap: 18px;
       background: #0d1b2a; text-align: center; padding: 24px;
     }
+    html.dikey-tamam #yatay-uyari { display: none; }
     #yatay-uyari .telefon {
       width: 54px; height: 92px; border: 3px solid #ffb547; border-radius: 10px;
       animation: cevir 1.8s ease-in-out infinite;
@@ -109,9 +114,15 @@
       0%, 30% { transform: rotate(0deg); }
       60%, 100% { transform: rotate(90deg); }
     }
+    #dikey-oyna {
+      margin-top: 6px; padding: 12px 22px; border: 0; border-radius: 99px;
+      font: 700 16px/1 system-ui, sans-serif; color: #3a2100;
+      background: linear-gradient(180deg, #ffd766, #d9901a); box-shadow: 0 3px 0 #8a5608;
+    }
+    #yatay-uyari small { opacity: .55; font-size: 12px; max-width: 280px; }
   }
 </style>
-  <script type="module" crossorigin src="./assets/index-BECyaWsI.js"></script>
+  <script type="module" crossorigin src="./assets/index-4jS2y3A-.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/motor-DrCpL8qo.js">
 </head>
 <body>
@@ -127,7 +138,55 @@
   <div id="yatay-uyari">
     <div class="telefon"></div>
     <div>Telefonu <b>yan çevir</b></div>
+    <button id="dikey-oyna" type="button">Yine de oyna</button>
+    <small>Telefonun ekran döndürme kilidi açıksa çevirmek işe yaramaz.</small>
   </div>
+
+  <!-- YON DENETIMI: modulden BAGIMSIZ calisir, oyun daha yuklenirken bile
+       calissin diye buraya konuldu.
+
+       Kullanici (2026-09-29): "telefonu ceviriyor ama anlamiyor". CSS
+       `@media (orientation: portrait)` tek basina yetmiyor:
+       - telefonun EKRAN DONDURME KILIDI acikken cevirmek viewport'u
+         degistirmez, uyari sonsuza kadar kalir;
+       - bazi tarayicilar donme sonrasi olcuyu gec tazeler.
+       Cozum: (1) ikinci bir yon kaynagi (screen.orientation / window.orientation
+       / en>boy) landscape diyorsa uyariyi kaldir, (2) "Yine de oyna" dugmesi
+       ve uyariya dokunmak da kaldirsin -- secim hatirlanir. -->
+  <script>
+    (function () {
+      var kok = document.documentElement;
+      var uyari = document.getElementById('yatay-uyari');
+      var yaz = function (a, d) { try { localStorage.setItem(a, d); } catch (e) {} };
+      try { if (localStorage.getItem('aktug-3b:dikeyTamam') === '1') kok.classList.add('dikey-tamam'); } catch (e) {}
+
+      var izinVer = function (hatirla) {
+        kok.classList.add('dikey-tamam');
+        if (hatirla) yaz('aktug-3b:dikeyTamam', '1');
+        window.dispatchEvent(new Event('resize'));   // tuval yeni olcuye gecsin
+      };
+
+      // Yatay mi? Uc kaynaktan biri yeter.
+      var yatayMi = function () {
+        var t = (screen.orientation && screen.orientation.type) || '';
+        if (t.indexOf('landscape') === 0) return true;
+        if (typeof window.orientation === 'number' && Math.abs(window.orientation) === 90) return true;
+        return innerWidth > innerHeight;
+      };
+      var denetle = function () { if (yatayMi()) kok.classList.add('dikey-tamam'); };
+      addEventListener('orientationchange', function () { setTimeout(denetle, 60); setTimeout(denetle, 400); });
+      if (screen.orientation && screen.orientation.addEventListener) {
+        screen.orientation.addEventListener('change', denetle);
+      }
+      addEventListener('resize', denetle);
+      denetle();
+
+      var d = document.getElementById('dikey-oyna');
+      if (d) d.addEventListener('click', function (e) { e.stopPropagation(); izinVer(true); });
+      // Cocuk dugmeyi bulamazsa: uyarinin herhangi bir yerine dokunmak da acar.
+      if (uyari) uyari.addEventListener('click', function () { izinVer(true); });
+    })();
+  </script>
 
 </body>
 </html>
